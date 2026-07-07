@@ -193,27 +193,6 @@ function DossierView() {
           </div>
         </div>
 
-        {/* Invoice list */}
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold text-primary-dark mb-3">Factures du dossier</h2>
-          <div className="grid gap-2">
-            {dossier.invoices.map((inv, i) => {
-              const { ht, ttc } = computeInvoice(inv);
-              return (
-                <div key={inv.id} className="rounded-lg border border-border bg-card px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-sm">
-                  <div>
-                    <span className="font-mono text-primary-dark font-semibold">{inv.numero || `#${i + 1}`}</span>
-                    <span className="text-muted-foreground ml-3">{inv.date} · {inv.items.length} lignes</span>
-                  </div>
-                  <div className="flex gap-5 text-xs">
-                    <span><span className="text-muted-foreground">HT</span> <strong>{money(ht)}</strong></span>
-                    <span><span className="text-muted-foreground">TTC</span> <strong className="text-primary-dark">{money(ttc)} MAD</strong></span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </main>
 
       <SiteFooter />
