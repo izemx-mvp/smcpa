@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
+
 export const DEMO_EMAIL = "demo@smcpa.ma";
 export const DEMO_PASSWORD = "smcpa2026";
 const KEY = "smcpa.auth.v1";
@@ -18,9 +21,6 @@ export function signIn(email: string, password: string): boolean {
 export function signOut() {
   localStorage.removeItem(KEY);
 }
-
-import { useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
 
 export function useAuthGuard() {
   const navigate = useNavigate();
