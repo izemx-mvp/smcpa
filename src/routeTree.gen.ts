@@ -9,12 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as PortailRouteImport } from './routes/portail'
+import { Route as NouveauRouteImport } from './routes/nouveau'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DossierIdRouteImport } from './routes/dossier.$id'
 
-const PortailRoute = PortailRouteImport.update({
-  id: '/portail',
-  path: '/portail',
+const NouveauRoute = NouveauRouteImport.update({
+  id: '/nouveau',
+  path: '/nouveau',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +23,49 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DossierIdRoute = DossierIdRouteImport.update({
+  id: '/dossier/$id',
+  path: '/dossier/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/portail': typeof PortailRoute
+  '/nouveau': typeof NouveauRoute
+  '/dossier/$id': typeof DossierIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/portail': typeof PortailRoute
+  '/nouveau': typeof NouveauRoute
+  '/dossier/$id': typeof DossierIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/portail': typeof PortailRoute
+  '/nouveau': typeof NouveauRoute
+  '/dossier/$id': typeof DossierIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/portail'
+  fullPaths: '/' | '/nouveau' | '/dossier/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/portail'
-  id: '__root__' | '/' | '/portail'
+  to: '/' | '/nouveau' | '/dossier/$id'
+  id: '__root__' | '/' | '/nouveau' | '/dossier/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  PortailRoute: typeof PortailRoute
+  NouveauRoute: typeof NouveauRoute
+  DossierIdRoute: typeof DossierIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/portail': {
-      id: '/portail'
-      path: '/portail'
-      fullPath: '/portail'
-      preLoaderRoute: typeof PortailRouteImport
+    '/nouveau': {
+      id: '/nouveau'
+      path: '/nouveau'
+      fullPath: '/nouveau'
+      preLoaderRoute: typeof NouveauRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dossier/$id': {
+      id: '/dossier/$id'
+      path: '/dossier/$id'
+      fullPath: '/dossier/$id'
+      preLoaderRoute: typeof DossierIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  PortailRoute: PortailRoute,
+  NouveauRoute: NouveauRoute,
+  DossierIdRoute: DossierIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
