@@ -1,6 +1,13 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
+import { signOut } from "@/lib/auth";
 
 export function SiteHeader() {
+  const navigate = useNavigate();
+  const onLogout = () => {
+    signOut();
+    navigate({ to: "/login" });
+  };
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-6">
@@ -12,27 +19,37 @@ export function SiteHeader() {
           />
         </Link>
 
-        <nav className="flex items-center gap-1 text-sm font-medium bg-muted/60 rounded-full p-1 border border-border/60">
-          <Link
-            to="/"
-            activeOptions={{ exact: true }}
-            activeProps={{ className: "bg-card text-primary-dark shadow-sm" }}
-            className="px-4 py-1.5 rounded-full text-muted-foreground hover:text-primary transition-colors"
+        <div className="flex items-center gap-3">
+          <nav className="flex items-center gap-1 text-sm font-medium bg-muted/60 rounded-full p-1 border border-border/60">
+            <Link
+              to="/"
+              activeOptions={{ exact: true }}
+              activeProps={{ className: "bg-card text-primary-dark shadow-sm" }}
+              className="px-4 py-1.5 rounded-full text-muted-foreground hover:text-primary transition-colors"
+            >
+              Dossiers
+            </Link>
+            <Link
+              to="/nouveau"
+              activeProps={{ className: "bg-card text-primary-dark shadow-sm" }}
+              className="px-4 py-1.5 rounded-full text-muted-foreground hover:text-primary transition-colors"
+            >
+              Nouveau
+            </Link>
+          </nav>
+          <button
+            onClick={onLogout}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors px-3 py-1.5 rounded-full border border-border/60 hover:border-destructive/40"
+            aria-label="Se déconnecter"
           >
-            Dossiers
-          </Link>
-          <Link
-            to="/nouveau"
-            activeProps={{ className: "bg-card text-primary-dark shadow-sm" }}
-            className="px-4 py-1.5 rounded-full text-muted-foreground hover:text-primary transition-colors"
-          >
-            Nouveau
-          </Link>
-        </nav>
+            <LogOut className="h-3.5 w-3.5" /> Déconnexion
+          </button>
+        </div>
       </div>
     </header>
   );
 }
+
 
 export function SiteFooter() {
   return (
