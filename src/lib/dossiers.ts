@@ -26,6 +26,7 @@ export type Dossier = {
   period: string; // YYYY-MM
   label: string;
   createdAt: string;
+  sourceFiles: string[]; // filenames imported
   invoices: Invoice[];
 };
 
