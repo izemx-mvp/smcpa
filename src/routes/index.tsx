@@ -4,11 +4,15 @@ import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import {
   loadDossiers,
   deleteDossier,
+  saveDossier,
   totalsFor,
   money,
   type Dossier,
 } from "@/lib/dossiers";
-import { Plus, FolderOpen, Trash2, FileSpreadsheet, Calendar } from "lucide-react";
+import { seedDossiers } from "@/lib/mock-invoices";
+import { Plus, FolderOpen, Trash2, FileSpreadsheet, Calendar, FileText } from "lucide-react";
+
+const SEED_KEY = "smcpa.seeded.v1";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -24,7 +28,14 @@ function Dashboard() {
   const [dossiers, setDossiers] = useState<Dossier[]>([]);
 
   useEffect(() => {
-    setDossiers(loadDossiers());
+    if (typeof window === "undefined") return;
+    let all = loadDossiers();
+    if (all.length === 0 && !localStorage.getItem(SEED_KEY)) {
+      seedDossiers().forEach(saveDossier);
+      localStorage.setItem(SEED_KEY, "1");
+      all = loadDossiers();
+    }
+    setDossiers(all);
   }, []);
 
   const remove = (id: string) => {
