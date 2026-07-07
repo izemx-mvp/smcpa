@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { SiteHeader, SiteFooter } from "@/components/site-chrome";
+import { SiteHeader, SiteFooter, PageBackdrop } from "@/components/site-chrome";
 import {
   buildRows,
   deleteDossier,
@@ -36,8 +36,9 @@ function DossierView() {
 
   if (!dossier) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <SiteHeader />
+      <div className="min-h-screen flex flex-col">
+        <PageBackdrop />
+      <SiteHeader />
         <main className="max-w-3xl mx-auto px-6 py-20 text-center flex-1">
           <h1 className="text-2xl font-bold text-primary-dark">Dossier introuvable</h1>
           <p className="text-sm text-muted-foreground mt-2">Ce dossier n'existe pas ou a été supprimé.</p>
@@ -61,7 +62,8 @@ function DossierView() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col">
+      <PageBackdrop />
       <SiteHeader />
 
       <main className="max-w-6xl mx-auto px-6 py-10 w-full flex-1">
