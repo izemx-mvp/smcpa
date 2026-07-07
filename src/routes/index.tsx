@@ -94,7 +94,10 @@ function Dashboard() {
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="h-3 w-3" /> {d.period}
                             </span>
-                            <span>{d.invoices.length} factures · {t.items} lignes</span>
+                            <span className="inline-flex items-center gap-1">
+                              <FileText className="h-3 w-3" /> {d.sourceFiles.length} factures importées
+                            </span>
+                            <span>{t.items} lignes</span>
                           </div>
                         </div>
                       </div>
