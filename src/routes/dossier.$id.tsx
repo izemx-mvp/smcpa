@@ -12,7 +12,7 @@ import {
   totalsFor,
   type Dossier,
 } from "@/lib/dossiers";
-import { ArrowLeft, Calendar, Download, FileSpreadsheet, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Download, FileSpreadsheet, Sparkles, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/dossier/$id")({
   component: DossierView,
