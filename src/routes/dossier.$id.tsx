@@ -88,6 +88,32 @@ function DossierView() {
           </button>
         </div>
 
+        {/* Source files banner */}
+        {dossier.sourceFiles.length > 0 && (
+          <div className="mb-6 rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                Factures importées ({dossier.sourceFiles.length})
+              </div>
+              <div className="text-xs text-primary inline-flex items-center gap-1">
+                <Sparkles className="h-3.5 w-3.5" /> Analysées par l'IA
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {dossier.sourceFiles.slice(0, 12).map((n) => (
+                <span key={n} className="text-[11px] font-mono bg-muted rounded px-2 py-1 border border-border">
+                  {n}
+                </span>
+              ))}
+              {dossier.sourceFiles.length > 12 && (
+                <span className="text-[11px] text-muted-foreground px-2 py-1">
+                  +{dossier.sourceFiles.length - 12} autres
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
           {[
