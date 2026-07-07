@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { SiteHeader, SiteFooter } from "@/components/site-chrome";
+import { SiteHeader, SiteFooter, PageBackdrop } from "@/components/site-chrome";
 import {
   computeInvoice,
   money,
@@ -131,6 +131,7 @@ function NouveauDossier() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <PageBackdrop />
       <SiteHeader />
 
       <main className="max-w-5xl mx-auto px-6 py-10 w-full flex-1">
