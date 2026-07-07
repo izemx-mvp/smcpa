@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as NouveauRouteImport } from './routes/nouveau'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DossierIdRouteImport } from './routes/dossier.$id'
 
 const NouveauRoute = NouveauRouteImport.update({
   id: '/nouveau',
   path: '/nouveau',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,30 +37,34 @@ const DossierIdRoute = DossierIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/nouveau': typeof NouveauRoute
   '/dossier/$id': typeof DossierIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/nouveau': typeof NouveauRoute
   '/dossier/$id': typeof DossierIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/nouveau': typeof NouveauRoute
   '/dossier/$id': typeof DossierIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/nouveau' | '/dossier/$id'
+  fullPaths: '/' | '/login' | '/nouveau' | '/dossier/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/nouveau' | '/dossier/$id'
-  id: '__root__' | '/' | '/nouveau' | '/dossier/$id'
+  to: '/' | '/login' | '/nouveau' | '/dossier/$id'
+  id: '__root__' | '/' | '/login' | '/nouveau' | '/dossier/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   NouveauRoute: typeof NouveauRoute
   DossierIdRoute: typeof DossierIdRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/nouveau'
       fullPath: '/nouveau'
       preLoaderRoute: typeof NouveauRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   NouveauRoute: NouveauRoute,
   DossierIdRoute: DossierIdRoute,
 }
