@@ -10,6 +10,7 @@ import {
   type Dossier,
 } from "@/lib/dossiers";
 import { seedDossiers } from "@/lib/mock-invoices";
+import { useAuthGuard } from "@/lib/auth";
 import { Plus, FolderOpen, Trash2, FileSpreadsheet, Calendar, FileText } from "lucide-react";
 
 const SEED_KEY = "smcpa.seeded.v1";
@@ -25,7 +26,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
+  useAuthGuard();
   const [dossiers, setDossiers] = useState<Dossier[]>([]);
+
 
   useEffect(() => {
     if (typeof window === "undefined") return;
