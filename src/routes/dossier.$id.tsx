@@ -12,6 +12,7 @@ import {
   type Dossier,
 } from "@/lib/dossiers";
 import { ArrowLeft, Calendar, Download, FileSpreadsheet, Sparkles, Trash2 } from "lucide-react";
+import { useAuthGuard } from "@/lib/auth";
 
 export const Route = createFileRoute("/dossier/$id")({
   component: DossierView,
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/dossier/$id")({
 });
 
 function DossierView() {
+  useAuthGuard();
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [dossier, setDossier] = useState<Dossier | null>(null);

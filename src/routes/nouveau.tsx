@@ -11,6 +11,7 @@ import {
   type Invoice,
 } from "@/lib/dossiers";
 import { generateInvoicesForFiles } from "@/lib/mock-invoices";
+import { useAuthGuard } from "@/lib/auth";
 import {
   ArrowLeft,
   ArrowRight,
@@ -44,8 +45,10 @@ const STEPS = [
 type UploadedFile = { id: string; name: string; size: number };
 
 function NouveauDossier() {
+  useAuthGuard();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+
 
   const today = new Date();
   const [period, setPeriod] = useState(today.toISOString().slice(0, 7));
