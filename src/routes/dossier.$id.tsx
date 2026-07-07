@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import {
   buildRows,
-  computeInvoice,
   deleteDossier,
   exportDetailed,
   exportSummary,
