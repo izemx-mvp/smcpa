@@ -1,36 +1,47 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import {
-  blankInvoice,
-  blankItem,
   computeInvoice,
-  computeItem,
   money,
   saveDossier,
   totalsFor,
   uid,
   type Dossier,
   type Invoice,
-  type LineItem,
 } from "@/lib/dossiers";
-import { ArrowLeft, ArrowRight, Check, FolderOpen, Plus, Trash2, FileSpreadsheet, ClipboardList } from "lucide-react";
+import { generateInvoicesForFiles } from "@/lib/mock-invoices";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  FileSpreadsheet,
+  FileText,
+  FolderUp,
+  Loader2,
+  Sparkles,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 
 export const Route = createFileRoute("/nouveau")({
   component: NouveauDossier,
   head: () => ({
     meta: [
       { title: "Nouveau dossier — SMCPA" },
-      { name: "description", content: "Assistant de création d'un dossier mensuel de factures." },
+      { name: "description", content: "Importez les factures du mois, l'IA les analyse et génère les deux fichiers Excel." },
     ],
   }),
 });
 
 const STEPS = [
-  { key: "dossier", label: "Dossier", icon: FolderOpen },
-  { key: "factures", label: "Factures", icon: ClipboardList },
-  { key: "exports", label: "Exports", icon: FileSpreadsheet },
+  { key: "import", label: "Importer", icon: FolderUp },
+  { key: "analyse", label: "Analyse IA", icon: Sparkles },
+  { key: "revue", label: "Vérification", icon: Check },
 ] as const;
+
+type UploadedFile = { id: string; name: string; size: number };
 
 function NouveauDossier() {
   const navigate = useNavigate();
@@ -40,34 +51,59 @@ function NouveauDossier() {
   const [period, setPeriod] = useState(today.toISOString().slice(0, 7));
   const defaultLabel = `Dossier ${today.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`;
   const [label, setLabel] = useState(defaultLabel.charAt(0).toUpperCase() + defaultLabel.slice(1));
-  const [invoices, setInvoices] = useState<Invoice[]>([blankInvoice()]);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
-  const dossierPreview: Dossier = useMemo(
-    () => ({ id: "preview", period, label, createdAt: "", invoices }),
-    [period, label, invoices],
-  );
-  const totals = totalsFor(dossierPreview);
+  // AI analysis state
+  const [progress, setProgress] = useState(0);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [analysisDone, setAnalysisDone] = useState(false);
 
-  const updateInv = (id: string, patch: Partial<Invoice>) =>
-    setInvoices((p) => p.map((i) => (i.id === id ? { ...i, ...patch } : i)));
-  const updateItem = (invId: string, idx: number, patch: Partial<LineItem>) =>
-    setInvoices((p) =>
-      p.map((i) =>
-        i.id === invId ? { ...i, items: i.items.map((it, k) => (k === idx ? { ...it, ...patch } : it)) } : i,
-      ),
-    );
-  const addItem = (invId: string) =>
-    setInvoices((p) => p.map((i) => (i.id === invId ? { ...i, items: [...i.items, blankItem()] } : i)));
-  const removeItem = (invId: string, idx: number) =>
-    setInvoices((p) =>
-      p.map((i) => (i.id === invId ? { ...i, items: i.items.filter((_, k) => k !== idx) } : i)),
-    );
-  const addInvoice = () => setInvoices((p) => [...p, blankInvoice()]);
-  const removeInvoice = (id: string) => setInvoices((p) => (p.length > 1 ? p.filter((i) => i.id !== id) : p));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    addFiles(Array.from(e.dataTransfer.files));
+  };
+  const addFiles = (list: File[]) => {
+    const next = list.map((f) => ({ id: uid(), name: f.name, size: f.size }));
+    setFiles((prev) => [...prev, ...next]);
+  };
+  const removeFile = (id: string) => setFiles((p) => p.filter((f) => f.id !== id));
+
+  // Simulate "AI" processing of the imported factures
+  useEffect(() => {
+    if (step !== 1 || analysisDone) return;
+    setProgress(0);
+    setLogs([]);
+    const generated = generateInvoicesForFiles(period, files.length);
+
+    let i = 0;
+    const total = files.length;
+    const tick = () => {
+      if (i >= total) {
+        setLogs((l) => [...l, "✓ Analyse terminée — génération des lignes prête."]);
+        setInvoices(generated);
+        setAnalysisDone(true);
+        return;
+      }
+      const f = files[i];
+      const inv = generated[i];
+      setLogs((l) => [
+        ...l,
+        `→ ${f.name} · extraction en-tête (${inv.numero}) · ${inv.items.length - 1} produit(s) détecté(s)`,
+      ]);
+      i += 1;
+      setProgress(Math.round((i / total) * 100));
+      setTimeout(tick, 350 + Math.random() * 300);
+    };
+    const t = setTimeout(tick, 400);
+    return () => clearTimeout(t);
+  }, [step, files, period, analysisDone]);
 
   const canNext = () => {
-    if (step === 0) return period && label.trim().length > 0;
-    if (step === 1) return invoices.length > 0 && invoices.every((i) => i.numero.trim().length > 0);
+    if (step === 0) return files.length > 0 && label.trim().length > 0 && period;
+    if (step === 1) return analysisDone;
     return true;
   };
 
@@ -77,11 +113,21 @@ function NouveauDossier() {
       period,
       label: label.trim(),
       createdAt: new Date().toISOString(),
+      sourceFiles: files.map((f) => f.name),
       invoices,
     };
     saveDossier(dossier);
     navigate({ to: "/dossier/$id", params: { id: dossier.id } });
   };
+
+  const totals = totalsFor({
+    id: "p",
+    period,
+    label,
+    createdAt: "",
+    sourceFiles: [],
+    invoices,
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -120,144 +166,119 @@ function NouveauDossier() {
         <div className="rounded-2xl border border-border bg-card p-8">
           {step === 0 && (
             <div>
-              <h2 className="text-2xl font-bold text-primary-dark">Étape 1 — Créer le dossier</h2>
+              <h2 className="text-2xl font-bold text-primary-dark">Étape 1 — Importer les factures</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Le 15 du mois, ouvrez un nouveau dossier pour rassembler toutes les factures reçues.
+                Déposez toutes les factures reçues durant le mois. L'IA extraira automatiquement les en-têtes et les lignes produits.
               </p>
-              <div className="grid md:grid-cols-2 gap-4 mt-6 max-w-xl">
+
+              <div className="grid md:grid-cols-2 gap-4 mt-6 max-w-2xl">
                 <Field label="Intitulé du dossier" value={label} onChange={setLabel} />
                 <Field label="Période" type="month" value={period} onChange={setPeriod} />
               </div>
+
+              <div
+                onDrop={onDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onClick={() => inputRef.current?.click()}
+                className="mt-6 border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 rounded-xl p-10 text-center cursor-pointer transition"
+              >
+                <Upload className="h-8 w-8 mx-auto text-primary mb-3" />
+                <div className="font-semibold text-primary-dark">Glissez vos factures ici</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  PDF, images ou scans — plusieurs fichiers acceptés
+                </div>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff"
+                  className="hidden"
+                  onChange={(e) => e.target.files && addFiles(Array.from(e.target.files))}
+                />
+              </div>
+
+              {files.length > 0 && (
+                <div className="mt-4">
+                  <div className="text-xs text-muted-foreground mb-2">
+                    {files.length} fichier(s) prêt(s) à être analysés
+                  </div>
+                  <div className="grid gap-1.5 max-h-64 overflow-y-auto">
+                    {files.map((f) => (
+                      <div key={f.id} className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-sm">
+                        <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                        <span className="flex-1 truncate">{f.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {f.size ? `${(f.size / 1024).toFixed(0)} KB` : ""}
+                        </span>
+                        <button onClick={() => removeFile(f.id)} className="text-muted-foreground hover:text-destructive">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {step === 1 && (
             <div>
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
-                  <h2 className="text-2xl font-bold text-primary-dark">Étape 2 — Saisir les factures</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Une facture par bloc. Ajoutez chaque ligne produit (le total HT / TTC se calcule automatiquement).
-                  </p>
+              <h2 className="text-2xl font-bold text-primary-dark flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-primary" /> Analyse IA en cours
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                L'IA lit chaque facture, extrait les en-têtes (numéro, date, TVA, emballage) et les lignes produits.
+              </p>
+
+              <div className="mt-6">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-muted-foreground">
+                    {analysisDone ? "Terminé" : "Traitement..."}
+                  </span>
+                  <span className="font-semibold text-primary-dark">{progress}%</span>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {invoices.length} facture(s) · {totals.items} ligne(s)
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
                 </div>
               </div>
 
-              <div className="space-y-5 mt-6">
-                {invoices.map((inv, idx) => {
-                  const { ht, ttc } = computeInvoice(inv);
-                  return (
-                    <div key={inv.id} className="rounded-xl border border-border overflow-hidden">
-                      <div className="flex items-center justify-between bg-accent/50 px-4 py-2.5 border-b border-border">
-                        <span className="font-semibold text-primary-dark text-sm">
-                          Facture #{idx + 1} {inv.numero && `— ${inv.numero}`}
-                        </span>
-                        <button
-                          onClick={() => removeInvoice(inv.id)}
-                          className="text-destructive hover:bg-destructive/10 rounded p-1"
-                          aria-label="Supprimer la facture"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+              <div className="mt-6 rounded-lg bg-muted/50 border border-border p-4 h-64 overflow-y-auto font-mono text-xs space-y-1">
+                {logs.length === 0 && (
+                  <div className="text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Initialisation du moteur d'extraction...
+                  </div>
+                )}
+                {logs.map((l, i) => (
+                  <div key={i} className="text-foreground">{l}</div>
+                ))}
+              </div>
 
-                      <div className="p-4 grid gap-3 md:grid-cols-4">
-                        <Field label="Numéro facture *" value={inv.numero} onChange={(v) => updateInv(inv.id, { numero: v })} />
-                        <Field label="N° commande" value={inv.numero_commande} onChange={(v) => updateInv(inv.id, { numero_commande: v })} />
-                        <Field label="Code commande" value={inv.code_commande} onChange={(v) => updateInv(inv.id, { code_commande: v })} />
-                        <Field label="Date" type="date" value={inv.date} onChange={(v) => updateInv(inv.id, { date: v })} />
-                        <Field label="N° cmde client" value={inv.num_cmde_client} onChange={(v) => updateInv(inv.id, { num_cmde_client: v })} />
-                        <Field label="N° livraison" value={inv.num_livraison} onChange={(v) => updateInv(inv.id, { num_livraison: v })} />
-                        <Field label="TVA (MAD)" type="number" value={inv.tva} onChange={(v) => updateInv(inv.id, { tva: +v || 0 })} />
-                        <Field label="Emballage (MAD)" type="number" value={inv.montant_emballage} onChange={(v) => updateInv(inv.id, { montant_emballage: +v || 0 })} />
-                      </div>
-
-                      <div className="px-4 pb-4">
-                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                          Lignes produits
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                                <th className="py-2 pr-2 font-medium">Désignation</th>
-                                <th className="py-2 pr-2 font-medium">Unité</th>
-                                <th className="py-2 pr-2 font-medium text-right">Qté</th>
-                                <th className="py-2 pr-2 font-medium text-right">P.U. HT</th>
-                                <th className="py-2 pr-2 font-medium text-right">Remise</th>
-                                <th className="py-2 pr-2 font-medium text-right">HT net</th>
-                                <th className="py-2"></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {inv.items.map((it, k) => {
-                                const { net } = computeItem(it);
-                                return (
-                                  <tr key={k} className="border-b border-border last:border-0">
-                                    <td className="py-1.5 pr-2">
-                                      <CellInput value={it.designation} onChange={(v) => updateItem(inv.id, k, { designation: v })} />
-                                    </td>
-                                    <td className="py-1.5 pr-2 w-28">
-                                      <CellInput value={it.unite_logistique} onChange={(v) => updateItem(inv.id, k, { unite_logistique: v })} />
-                                    </td>
-                                    <td className="py-1.5 pr-2 w-20">
-                                      <CellInput type="number" value={it.quantite} onChange={(v) => updateItem(inv.id, k, { quantite: +v || 0 })} align="right" />
-                                    </td>
-                                    <td className="py-1.5 pr-2 w-28">
-                                      <CellInput type="number" value={it.prix_unitaire_ht} onChange={(v) => updateItem(inv.id, k, { prix_unitaire_ht: +v || 0 })} align="right" />
-                                    </td>
-                                    <td className="py-1.5 pr-2 w-24">
-                                      <CellInput type="number" value={it.remise_commerciale} onChange={(v) => updateItem(inv.id, k, { remise_commerciale: +v || 0 })} align="right" />
-                                    </td>
-                                    <td className="py-1.5 pr-2 text-right font-medium text-primary-dark tabular-nums">
-                                      {money(net)}
-                                    </td>
-                                    <td className="w-8 text-right">
-                                      <button onClick={() => removeItem(inv.id, k)} className="text-muted-foreground hover:text-destructive p-1">
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </button>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                        <button
-                          onClick={() => addItem(inv.id)}
-                          className="mt-3 text-xs font-medium inline-flex items-center gap-1 text-primary hover:text-primary-dark"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Ajouter une ligne
-                        </button>
-
-                        <div className="mt-3 flex flex-wrap justify-end gap-5 text-sm border-t border-border pt-3">
-                          <div><span className="text-muted-foreground">HT :</span> <span className="font-semibold">{money(ht)}</span></div>
-                          <div><span className="text-muted-foreground">TVA :</span> <span className="font-semibold">{money(inv.tva)}</span></div>
-                          <div><span className="text-muted-foreground">Emb. :</span> <span className="font-semibold">{money(inv.montant_emballage)}</span></div>
-                          <div className="text-primary-dark"><span className="opacity-70">TTC :</span> <span className="font-bold">{money(ttc)}</span></div>
-                        </div>
-                      </div>
+              {analysisDone && (
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    ["Factures", invoices.length.toString()],
+                    ["Lignes", totals.items.toString()],
+                    ["Total HT", `${money(totals.ht)}`],
+                    ["Total TTC", `${money(totals.ttc)}`],
+                  ].map(([k, v]) => (
+                    <div key={k} className="rounded-lg border border-border p-3">
+                      <div className="text-xs text-muted-foreground">{k}</div>
+                      <div className="text-base font-semibold text-primary-dark mt-0.5">{v}</div>
                     </div>
-                  );
-                })}
-              </div>
-
-              <button
-                onClick={addInvoice}
-                className="mt-4 w-full py-3 rounded-xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 text-sm font-medium text-muted-foreground hover:text-primary transition inline-flex items-center justify-center gap-2"
-              >
-                <Plus className="h-4 w-4" /> Ajouter une facture
-              </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {step === 2 && (
             <div>
-              <h2 className="text-2xl font-bold text-primary-dark">Étape 3 — Vérifier et générer</h2>
+              <h2 className="text-2xl font-bold text-primary-dark">Étape 3 — Vérification</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Récapitulatif du dossier. En validant, le dossier est enregistré dans l'historique et les deux fichiers Excel seront disponibles.
+                Passez en revue les factures extraites. En validant, le dossier rejoint l'historique et les 2 fichiers Excel sont générés.
               </p>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
@@ -274,27 +295,51 @@ function NouveauDossier() {
                 ))}
               </div>
 
-              <div className="mt-6 rounded-xl border border-border p-5">
-                <div className="text-sm">
-                  <div><span className="text-muted-foreground">Dossier :</span> <strong className="text-primary-dark">{label}</strong></div>
-                  <div className="mt-1"><span className="text-muted-foreground">Période :</span> <strong>{period}</strong></div>
-                </div>
-                <div className="grid md:grid-cols-2 gap-3 mt-4">
-                  <div className="rounded-lg bg-accent/40 p-3 text-sm">
-                    <div className="font-semibold text-primary-dark flex items-center gap-2">
-                      <FileSpreadsheet className="h-4 w-4" /> Fichier Détaillé
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {totals.items} lignes (une par produit)
-                    </div>
+              <div className="mt-6 rounded-xl border border-border overflow-hidden max-h-[420px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/60 sticky top-0">
+                    <tr className="text-left text-xs text-muted-foreground">
+                      <th className="px-3 py-2 font-medium">Numéro</th>
+                      <th className="px-3 py-2 font-medium">Date</th>
+                      <th className="px-3 py-2 font-medium">Lignes</th>
+                      <th className="px-3 py-2 font-medium text-right">HT</th>
+                      <th className="px-3 py-2 font-medium text-right">TVA</th>
+                      <th className="px-3 py-2 font-medium text-right">TTC</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.map((inv) => {
+                      const { ht, ttc } = computeInvoice(inv);
+                      return (
+                        <tr key={inv.id} className="border-t border-border">
+                          <td className="px-3 py-2 font-mono text-primary-dark">{inv.numero}</td>
+                          <td className="px-3 py-2">{inv.date}</td>
+                          <td className="px-3 py-2">{inv.items.length}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{money(ht)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{money(inv.tva)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold">{money(ttc)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-3 mt-6">
+                <div className="rounded-lg bg-accent/40 p-4">
+                  <div className="font-semibold text-primary-dark flex items-center gap-2">
+                    <FileSpreadsheet className="h-4 w-4" /> SMCPA_Detaille_{period}.xlsx
                   </div>
-                  <div className="rounded-lg bg-accent/40 p-3 text-sm">
-                    <div className="font-semibold text-primary-dark flex items-center gap-2">
-                      <FileSpreadsheet className="h-4 w-4" /> Fichier Récapitulatif
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {invoices.length} lignes (une par facture)
-                    </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {totals.items} lignes (une par produit)
+                  </div>
+                </div>
+                <div className="rounded-lg bg-accent/40 p-4">
+                  <div className="font-semibold text-primary-dark flex items-center gap-2">
+                    <FileSpreadsheet className="h-4 w-4" /> SMCPA_Recapitulatif_{period}.xlsx
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {invoices.length} lignes (une par facture)
                   </div>
                 </div>
               </div>
@@ -314,11 +359,11 @@ function NouveauDossier() {
                 disabled={!canNext()}
                 className="btn-primary hover:btn-primary-hover inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Suivant <ArrowRight className="h-4 w-4" />
+                {step === 0 ? "Lancer l'analyse IA" : "Suivant"} <ArrowRight className="h-4 w-4" />
               </button>
             ) : (
               <button onClick={finalize} className="btn-primary hover:btn-primary-hover inline-flex items-center gap-2">
-                <Check className="h-4 w-4" /> Enregistrer le dossier
+                <Check className="h-4 w-4" /> Enregistrer & générer les Excel
               </button>
             )}
           </div>
@@ -354,23 +399,6 @@ function Field({
   );
 }
 
-function CellInput({
-  value,
-  onChange,
-  type = "text",
-  align = "left",
-}: {
-  value: string | number;
-  onChange: (v: string) => void;
-  type?: string;
-  align?: "left" | "right";
-}) {
-  return (
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring tabular-nums ${align === "right" ? "text-right" : ""}`}
-    />
-  );
-}
+// Unused (kept intentionally minimal): removeItem/updateItem could edit lines,
+// but the AI-extracted preview is read-only for now to keep the flow simple.
+export const _unused = { Trash2 };
