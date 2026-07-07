@@ -18,3 +18,14 @@ export function signIn(email: string, password: string): boolean {
 export function signOut() {
   localStorage.removeItem(KEY);
 }
+
+import { useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
+
+export function useAuthGuard() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!isAuthed()) navigate({ to: "/login" });
+  }, [navigate]);
+}
